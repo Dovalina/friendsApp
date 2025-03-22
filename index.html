@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends in Pádel - Generador de Parejas</title>
+    <style>
+        body { background-color: black; color: white; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
+        footer { background-color: white; padding: 5px; border: 2px solid white; border-radius: 10px; margin: 10px; }
+        .logo { max-width: 150px; margin-bottom: 10px; }
+        footer { display: flex; justify-content: center; gap: 20px; }
+        .patrocinador { max-width: 80px; opacity: 0.7; transition: opacity 0.3s; }
+        .patrocinador:hover { opacity: 1; }
+        input, button, select { background-color: white; color: black; padding: 5px; margin: 5px; border: none; }
+        button { background-color: orange; color: black; cursor: pointer; padding: 10px 20px; border-radius: 5px; transition: background-color 0.3s; }
+        button:hover { background-color: #cc7000; }
+        main { padding: 20px; }
+        .jugadores, .admin, .resultados { margin-bottom: 20px; }
+        .court { border: 2px solid white; padding: 10px; margin: 10px; display: inline-block; width: 200px; background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+        /* Eliminar recuadro de los resultados */
+        #courtsContainer {
+            padding: 20px; /* Espaciado dentro del contenedor */
+            text-align: left; /* Alinear los resultados a la izquierda */
+            background-color: transparent; /* Fondo transparente */
+            box-shadow: none; /* Eliminar sombra */
+            border: none; /* Eliminar borde */
+        }
+
+        /* Media queries para pantallas más pequeñas */
+        @media (max-width: 600px) {
+            body {
+                font-size: 14px;
+                padding: 10px;
+            }
+            header img {
+                max-width: 120px;
+            }
+            footer img {
+                max-width: 60px;
+            }
+            .court {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .patrocinador {
+                max-width: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="assets/logo.jpg" alt="Logo Pádel" class="logo">
+    </header>
+
+    <main>
+        <h1>Generador de Parejas para Pádel</h1>
+
+        <section class="jugadores">
+            <h2>Jugadores:</h2>
+            <input type="text" id="player" placeholder="Nombre del Jugador">
+            <button onclick="addPlayer()">Agregar</button>
+            <p>O agrega jugadores pegando una lista de nombres (uno por línea):</p>
+            <textarea id="playerListInput" placeholder="Pega aquí los nombres de los jugadores (uno por línea)"></textarea>
+            <button onclick="addPlayersFromList()">Agregar Jugadores desde Lista</button>
+            <ul id="playerList"></ul>
+        </section>
+
+        <section class="admin">
+            <h2>Administrador</h2>
+            <input type="password" id="adminPass" placeholder="Contraseña de administrador">
+            <button onclick="toggleAdmin()">Ingresar como Admin</button>
+
+            <div id="adminControls" style="display:none;">
+                <label for="courts">Número de Canchas:</label>
+                <input type="number" id="courts" min="1" value="1">
+                <label for="courtNames">Nombre de la Cancha:</label>
+                <select id="courtNames" multiple>
+                    <option>Central Golf</option>
+                    <option>Moric</option>
+                    <option>HEB</option>
+                    <option>Casa del Vino</option>
+                    <option>Lala</option>
+                    <option>AR</option>
+                    <option>Mochomos</option>
+                </select>
+                <button onclick="generateTeams()">Generar Parejas</button>
+                <button onclick="generateImage()" id="generateImageBtn" style="display:none;">Generar Imagen</button>
+                <button onclick="shareOnWhatsApp()" id="shareBtn" style="display:none;">Compartir por WhatsApp</button>
+            </div>
+        </section>
+
+        <section class="resultados">
+            <h2>Resultados:</h2>
+            <div id="courtsContainer"></div>
+        </section>
+    </main>
+
+    <footer>
+        <img src="assets/patrocinador1.png" alt="Patrocinador 1" class="patrocinador">
+        <img src="assets/patrocinador2.png" alt="Patrocinador 2" class="patrocinador">
+        <img src="assets/patrocinador3.png" alt="Patrocinador 3" class="patrocinador">
+        <img src="assets/patrocinador4.png" alt="Patrocinador 4" class="patrocinador">
+    </footer>
+
+    <!-- Actualización de html2canvas a una versión compatible -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.2/html2canvas.min.js"></script> <!-- Nueva versión -->
+    <script>
+        let players = [];
+        const adminPassword = "admin123";
+
+        function addPlayer() {
+            let playerInput = document.getElementById('player');
+            let name = playerInput.value.trim();
+            
+            if (name && !players.includes(name)) {
+                players.push(name);
+                updatePlayerList();
+                playerInput.value = '';
+            } else if (players.includes(name)) {
+                alert('Este jugador ya ha sido agregado.');
+            }
+        }
+
+        function updatePlayerList() {
+            let list = document.getElementById('playerList');
+            list.innerHTML = ''; 
+            players.forEach(player => {
+                let li = document.createElement('li');
+                li.textContent = player;
+                list.appendChild(li);
+            });
+        }
+
+        function addPlayersFromList() {
+            let playerListInput = document.getElementById('playerListInput').value.trim();
+            let newPlayers = playerListInput.split('\n').map(player => player.trim()).filter(player => player.length > 0);
+
+            newPlayers.forEach(player => {
+                if (!players.includes(player)) {
+                    players.push(player);
+                }
+            });
+
+            updatePlayerList(); 
+            document.getElementById('playerListInput').value = ''; 
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function generateTeams() {
+            let numCourts = parseInt(document.getElementById('courts').value);
+            let selectedCourts = Array.from(document.getElementById('courtNames').selectedOptions).map(opt => opt.value);
+
+            if (players.length < numCourts * 4) {
+                alert('No hay suficientes jugadores para la cantidad de canchas seleccionadas.');
+                return;
+            }
+
+            shuffleArray(players);
+            let courtsContainer = document.getElementById('courtsContainer');
+            courtsContainer.innerHTML = '';
+
+            for (let i = 0; i < numCourts; i++) {
+                let courtDiv = document.createElement('div');
+                courtDiv.classList.add('court');
+                courtDiv.innerHTML = `<h3>Cancha ${selectedCourts[i]}</h3><p>${players.slice(i * 4, i * 4 + 2).join(' y ') + ' vs ' + players.slice(i * 4 + 2, i * 4 + 4).join(' y ')}</p>`;
+                courtsContainer.appendChild(courtDiv);
+            }
+
+            document.getElementById('generateImageBtn').style.display = 'block';
+            document.getElementById('shareBtn').style.display = 'block';
+        }
+
+        function toggleAdmin() {
+            let passInput = document.getElementById('adminPass').value;
+            let adminControls = document.getElementById('adminControls');
+            adminControls.style.display = (passInput === adminPassword) ? 'block' : 'none';
+            if (passInput !== adminPassword) alert('Contraseña incorrecta');
+        }
+
+        function generateImage() {
+            let resultsContainer = document.getElementById('courtsContainer');
+            
+            // Usando la nueva versión de html2canvas
+            html2canvas(resultsContainer, {
+                backgroundColor: "#ffffff", // Fondo blanco
+                logging: true, 
+                useCORS: true,
+                scale: 2 // Escalar para mayor resolución
+            }).then(function(canvas) {
+                // Convertir a JPG o PNG y descargar
+                let link = document.createElement('a');
+                link.href = canvas.toDataURL("image/png");  // O usa "image/jpeg" para JPG
+                link.download = 'resultados_padel.png'; // Cambia la extensión a .jpg si prefieres JPG
+                link.click();
+            }).catch(function(error) {
+                console.error("Error al generar la imagen:", error);
+            });
+        }
+
+        function shareOnWhatsApp() {
+            let mensaje = 'Aquí están las parejas de pádel 🎾:' + '\n' + document.getElementById('courtsContainer').innerText;
+            let whatsappURL = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+            window.open(whatsappURL, '_blank');
+        }
+    </script>
+</body>
+</html>
