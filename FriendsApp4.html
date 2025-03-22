@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends in Pádel - Generador de Parejas</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .court {
+            border: 2px solid white;
+            padding: 10px;
+            margin: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            display: inline-block;
+            width: calc(50% - 20px);
+        }
+        input, button, select, textarea {
+            background-color: white;
+            color: black;
+            border: none;
+            padding: 5px;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            border-radius: 5px;
+            width: 100%;
+        }
+        #shareButton { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Generador de Parejas para Pádel</h1>
+
+    <h2>Registro de Usuario</h2>
+    <input type="text" id="phone" placeholder="Número de teléfono">
+    <input type="text" id="name" placeholder="Nombre completo">
+    <input type="text" id="alias" placeholder="Alias del jugador">
+    <button onclick="registerUser()">Registrar Usuario</button>
+    <ul id="userList"></ul>
+
+    <h2>Administrador</h2>
+    <input type="password" id="adminPass" placeholder="Contraseña">
+    <button onclick="toggleAdmin()">Ingresar como Admin</button>
+    
+    <div id="adminControls" style="display: none;">
+        <input type="date" id="gameDate">
+        <button onclick="addGameDate()">Agregar Fecha</button>
+        <ul id="availableDates"></ul>
+    </div>
+
+    <h2>Seleccionar Fecha y Jugadores</h2>
+    <select id="gameDateSelect" onchange="updatePlayerList()"></select>
+    <textarea id="invitePlayersInput" placeholder="Introduce los jugadores a invitar" rows="4"></textarea>
+    <button onclick="registerPlayersForGame()">Registrar Jugadores</button>
+    
+    <h2>Jugadores en la Fecha Seleccionada:</h2>
+    <ul id="playersForDate"></ul>
+
+    <h2>Resultados:</h2>
+    <div id="courtsContainer"></div>
+    <button id="shareButton" onclick="shareOnWhatsApp()">Compartir por WhatsApp</button>
+
+    <script>
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let availableDates = JSON.parse(localStorage.getItem('dates')) || [];
+        let datePlayers = JSON.parse(localStorage.getItem('datePlayers')) || {};
+        const adminPassword = "admin123";
+
+        function saveToLocalStorage() {
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('dates', JSON.stringify(availableDates));
+            localStorage.setItem('datePlayers', JSON.stringify(datePlayers));
+        }
+
+        function registerUser() {
+            const phone = document.getElementById('phone').value;
+            const name = document.getElementById('name').value;
+            const alias = document.getElementById('alias').value;
+
+            if (!phone || !name || !alias) return alert("Completa todos los campos");
+            users.push({ phone, name, alias });
+            saveToLocalStorage();
+            updateUserList();
+        }
+
+        function updateUserList() {
+            document.getElementById('userList').innerHTML = users.map(user => `<li>${user.name} (${user.alias})</li>`).join('');
+        }
+
+        function toggleAdmin() {
+            if (document.getElementById('adminPass').value === adminPassword) {
+                document.getElementById('adminControls').style.display = 'block';
+                alert("Acceso concedido");
+            } else {
+                alert("Contraseña incorrecta");
+            }
+        }
+
+        function addGameDate() {
+            const gameDate = document.getElementById('gameDate').value;
+            if (!gameDate || availableDates.includes(gameDate)) return alert("Fecha inválida o duplicada");
+            availableDates.push(gameDate);
+            datePlayers[gameDate] = [];
+            saveToLocalStorage();
+            updateAvailableDates();
+        }
+
+        function updateAvailableDates() {
+            document.getElementById('availableDates').innerHTML = availableDates.map((date, index) => 
+                `<li>${date} <button onclick="deleteDate(${index})">Eliminar</button></li>`).join('');
+            let select = document.getElementById('gameDateSelect');
+            select.innerHTML = availableDates.map(date => `<option value="${date}">${date}</option>`).join('');
+        }
+
+        function deleteDate(index) {
+            let date = availableDates[index];
+            availableDates.splice(index, 1);
+            delete datePlayers[date];
+            saveToLocalStorage();
+            updateAvailableDates();
+        }
+
+        function registerPlayersForGame() {
+            const selectedDate = document.getElementById('gameDateSelect').value;
+            const invitedPlayers = document.getElementById('invitePlayersInput').value.split(/[,\n;]/).map(p => p.trim());
+            if (!selectedDate || invitedPlayers.length < 1) return alert("Selecciona una fecha y al menos 1 jugador");
+
+            let players = invitedPlayers.map(name => users.find(u => u.name === name || u.alias === name) || { name, alias: name });
+            datePlayers[selectedDate] = datePlayers[selectedDate] ? datePlayers[selectedDate].concat(players) : players;
+            saveToLocalStorage();
+            updatePlayerList();
+        }
+
+        function updatePlayerList() {
+            const selectedDate = document.getElementById('gameDateSelect').value;
+            let list = document.getElementById('playersForDate');
+            list.innerHTML = (datePlayers[selectedDate] || []).map(player => `<li>${player.name} (${player.alias})</li>`).join('');
+        }
+
+        function shareOnWhatsApp() {
+            let text = "Equipos generados:\n" + document.getElementById('courtsContainer').innerText;
+            let url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        updateUserList();
+        updateAvailableDates();
+    </script>
+</body>
+</html>

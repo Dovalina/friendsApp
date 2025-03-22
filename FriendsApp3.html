@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends in Pádel - Generador de Parejas</title>
+    <style>
+        body { background-color: black; color: white; font-family: Arial, sans-serif; text-align: center; position: relative; }
+        .court { border: 2px solid white; padding: 10px; margin: 10px; display: inline-block; background-color: rgba(0, 0, 0, 0.7); border-radius: 10px; }
+        input, button, select, textarea { background-color: white; color: black; border: none; padding: 5px; }
+        .logo-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.1; z-index: -1; }
+        .logo-container img { width: 400px; }
+        #courtsContainer { border: 2px solid white; padding: 20px; display: inline-block; border-radius: 10px; margin-top: 20px; }
+        #shareButton { display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <img src="logo.jpg" alt="Logo Pádel">
+    </div>
+    <h1>Generador de Parejas para Pádel</h1>
+    
+    <h2>Jugadores:</h2>
+    <label for="playerInput">Lista de nombres (separados por comas o en líneas separadas):</label>
+    <textarea id="playerInput" rows="4" cols="50"></textarea>
+    <button onclick="addPlayers()">Agregar</button>
+    <ul id="playerList"></ul>
+    
+    <h2>Administrador</h2>
+    <label for="adminPass">Contraseña de administrador:</label>
+    <input type="password" id="adminPass">
+    <button onclick="toggleAdmin()">Ingresar como Admin</button>
+    
+    <div id="adminControls" style="display: none; margin-top: 20px;">
+        <label for="courts">Número de Canchas:</label>
+        <input type="number" id="courts" min="1" value="1" onchange="updateCourtSelectors()">
+        <div id="courtSelectors"></div>
+        <button onclick="generateTeams()">Generar Parejas</button>
+    </div>
+    
+    <h2>Resultados:</h2>
+    <div id="courtsContainer"></div>
+    <button id="shareButton" onclick="shareOnWhatsApp()">Compartir por WhatsApp</button>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        let players = [];
+        const adminPassword = "admin123";
+        const courtNames = ["Friends", "Central", "Lala", "Casa del vino", "Moric", "Combugas", "AR", "Mochomos", "Otra"];
+
+        function addPlayers() {
+            let playerInput = document.getElementById('playerInput');
+            let names = playerInput.value.split(/[,\n]/).map(name => name.trim()).filter(name => name);
+            players.push(...names);
+            updatePlayerList();
+            playerInput.value = '';
+        }
+
+        function updatePlayerList() {
+            let list = document.getElementById('playerList');
+            list.innerHTML = '';
+            players.forEach(player => {
+                let li = document.createElement('li');
+                li.textContent = player;
+                list.appendChild(li);
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function updateCourtSelectors() {
+            let numCourts = parseInt(document.getElementById('courts').value);
+            let selectorsDiv = document.getElementById('courtSelectors');
+            selectorsDiv.innerHTML = '';
+            
+            for (let i = 0; i < numCourts; i++) {
+                let select = document.createElement('select');
+                select.classList.add('courtSelect');
+                courtNames.forEach(name => {
+                    let option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+                selectorsDiv.appendChild(document.createTextNode(`Cancha ${i + 1}: `));
+                selectorsDiv.appendChild(select);
+                selectorsDiv.appendChild(document.createElement('br'));
+            }
+        }
+
+        function generateTeams() {
+            let numCourts = parseInt(document.getElementById('courts').value);
+            if (players.length < numCourts * 4) {
+                alert('No hay suficientes jugadores para la cantidad de canchas seleccionadas.');
+                return;
+            }
+            
+            shuffleArray(players);
+            let courtsContainer = document.getElementById('courtsContainer');
+            courtsContainer.innerHTML = '';
+            let selects = document.querySelectorAll('.courtSelect');
+            
+            for (let i = 0; i < numCourts; i++) {
+                let courtDiv = document.createElement('div');
+                courtDiv.classList.add('court');
+                let courtName = selects[i].value;
+                courtDiv.innerHTML = `<h3>${courtName}</h3><p>${players.slice(i * 4, i * 4 + 4).join(', ')}</p>`;
+                courtsContainer.appendChild(courtDiv);
+            }
+            document.getElementById('shareButton').style.display = 'block';
+        }
+        
+        function toggleAdmin() {
+            let passInput = document.getElementById('adminPass').value;
+            let adminControls = document.getElementById('adminControls');
+            if (passInput === adminPassword) {
+                adminControls.style.display = 'block';
+                updateCourtSelectors();
+            } else {
+                alert('Contraseña incorrecta');
+            }
+        }
+    </script>
+</body>
+</html>

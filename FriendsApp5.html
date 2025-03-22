@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends in Pádel - Generador de Parejas</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .court {
+            border: 2px solid white;
+            padding: 10px;
+            margin: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            display: inline-block;
+            width: calc(50% - 20px);
+        }
+        input, button, select, textarea {
+            background-color: white;
+            color: black;
+            border: none;
+            padding: 5px;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            border-radius: 5px;
+            width: 100%;
+        }
+        #shareButton { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Generador de Parejas para Pádel</h1>
+
+    <h2>Registro de Usuario</h2>
+    <input type="text" id="phone" placeholder="Número de teléfono">
+    <input type="text" id="name" placeholder="Nombre completo">
+    <input type="text" id="alias" placeholder="Alias del jugador">
+    <button onclick="registerUser()">Registrar Usuario</button>
+    <ul id="userList"></ul>
+
+    <h2>Administrador</h2>
+    <input type="password" id="adminPass" placeholder="Contraseña">
+    <button onclick="toggleAdmin()">Ingresar como Admin</button>
+    
+    <div id="adminControls" style="display: none;">
+        <input type="date" id="gameDate">
+        <button onclick="addGameDate()">Agregar Fecha</button>
+        <ul id="availableDates"></ul>
+    </div>
+
+    <h2>Seleccionar Fecha y Jugadores</h2>
+    <select id="gameDateSelect" onchange="updatePlayerList()"></select>
+    <textarea id="invitePlayersInput" placeholder="Introduce los jugadores a invitar" rows="4"></textarea>
+    <button onclick="registerPlayersForGame()">Registrar Jugadores</button>
+    
+    <h2>Jugadores en la Fecha Seleccionada:</h2>
+    <ul id="playersForDate"></ul>
+
+    <h2>Generar Canchas</h2>
+    <button onclick="generateCourts()">Generar Canchas</button>
+    <div id="courtsContainer"></div>
+    <button id="shareButton" onclick="shareOnWhatsApp()">Compartir por WhatsApp</button>
+
+    <script>
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let availableDates = JSON.parse(localStorage.getItem('dates')) || [];
+        let datePlayers = JSON.parse(localStorage.getItem('datePlayers')) || {};
+        const adminPassword = "admin123";
+        const courtNames = ["AR", "Moric", "Central", "Casa del Vino", "Mochomos", "Lala", "Combugas"];
+
+        function saveToLocalStorage() {
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('dates', JSON.stringify(availableDates));
+            localStorage.setItem('datePlayers', JSON.stringify(datePlayers));
+        }
+
+        function registerUser() {
+            const phone = document.getElementById('phone').value;
+            const name = document.getElementById('name').value;
+            const alias = document.getElementById('alias').value;
+            if (!phone || !name || !alias) return alert("Completa todos los campos");
+            users.push({ phone, name, alias });
+            saveToLocalStorage();
+            updateUserList();
+        }
+
+        function updateUserList() {
+            document.getElementById('userList').innerHTML = users.map(user => `<li>${user.name} (${user.alias})</li>`).join('');
+        }
+
+        function toggleAdmin() {
+            if (document.getElementById('adminPass').value === adminPassword) {
+                document.getElementById('adminControls').style.display = 'block';
+                alert("Acceso concedido");
+            } else {
+                alert("Contraseña incorrecta");
+            }
+        }
+
+        function addGameDate() {
+            const gameDate = document.getElementById('gameDate').value;
+            if (!gameDate || availableDates.includes(gameDate)) return alert("Fecha inválida o duplicada");
+            availableDates.push(gameDate);
+            datePlayers[gameDate] = [];
+            saveToLocalStorage();
+            updateAvailableDates();
+        }
+
+        function updateAvailableDates() {
+            document.getElementById('availableDates').innerHTML = availableDates.map((date, index) => `<li>${date} <button onclick="deleteDate(${index})">Eliminar</button></li>`).join('');
+            let select = document.getElementById('gameDateSelect');
+            select.innerHTML = availableDates.map(date => `<option value="${date}">${date}</option>`).join('');
+        }
+
+        function registerPlayersForGame() {
+            const selectedDate = document.getElementById('gameDateSelect').value;
+            const invitedPlayers = document.getElementById('invitePlayersInput').value.split(/[,
+;]/).map(p => p.trim());
+            if (!selectedDate || invitedPlayers.length < 1) return alert("Selecciona una fecha y al menos 1 jugador");
+            let players = invitedPlayers.map((name, index) => users.find(u => u.name === name || u.alias === name) || { name: `Invitado ${index + 1}`, alias: `Invitado ${index + 1}` });
+            datePlayers[selectedDate] = players;
+            saveToLocalStorage();
+            updatePlayerList();
+        }
+
+        function generateCourts() {
+            const selectedDate = document.getElementById('gameDateSelect').value;
+            let players = datePlayers[selectedDate] || [];
+            let courtsContainer = document.getElementById('courtsContainer');
+            courtsContainer.innerHTML = '';
+            let courtIndex = 0;
+            while (players.length >= 4) {
+                let courtDiv = document.createElement('div');
+                courtDiv.className = 'court';
+                courtDiv.innerHTML = `<strong>${courtNames[courtIndex % courtNames.length]}:</strong> ${players.splice(0, 2).map(p => p.name).join(' y ')} vs ${players.splice(0, 2).map(p => p.name).join(' y ')}`;
+                courtsContainer.appendChild(courtDiv);
+                courtIndex++;
+            }
+            document.getElementById('shareButton').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
